@@ -196,86 +196,94 @@
   </footer>
 
   <script>
-      localStorage.removeItem("orderSubmitted");
-    function loadCart() {
-      const cartContainer = document.getElementById('cart-items');
-      const totalDisplay = document.getElementById('cart-total');
-      const checkoutBtn = document.getElementById('checkout-btn');
+  localStorage.removeItem("orderSubmitted");
 
-      let cart = JSON.parse(localStorage.getItem('cart')) || [];
+  function loadCart() {
+    const cartContainer = document.getElementById('cart-items');
+    const totalDisplay = document.getElementById('cart-total');
+    const checkoutBtn = document.getElementById('checkout-btn');
 
-      const consolidated = {};
-      cart.forEach(item => {
-        if (consolidated[item.name]) {
-          consolidated[item.name].quantity++;
-        } else {
-          consolidated[item.name] = { ...item, quantity: 1 };
-        }
-      });
+    let cart = JSON.parse(localStorage.getItem('cart')) || [];
 
-      cart = Object.values(consolidated);
-      cartContainer.innerHTML = '';
-      let grandTotal = 0;
+    cartContainer.innerHTML = '';
+    let grandTotal = 0;
 
-      if (cart.length === 0) {
-        cartContainer.innerHTML = '<p class="empty-message">Your cart is empty.</p>';
-        checkoutBtn.style.display = 'none';
-        totalDisplay.style.display = 'none';
-        return;
-      }
+    if (cart.length === 0) {
+      cartContainer.innerHTML = '<p class="empty-message">Your cart is empty.</p>';
+      checkoutBtn.style.display = 'none';
+      totalDisplay.style.display = 'none';
+      return;
+    }
 
-      totalDisplay.style.display = 'block';
-      checkoutBtn.style.display = 'inline-block';
+    totalDisplay.style.display = 'block';
+    checkoutBtn.style.display = 'inline-block';
 
-      cart.forEach((item) => {
-        const itemTotal = item.price * item.quantity;
-        grandTotal += itemTotal;
+    cart.forEach((item) => {
+      const itemTotal = item.price * item.quantity;
+      grandTotal += itemTotal;
 
-        const itemHTML = `
-          <div class="cart-item">
-            <img src="${item.image}" alt="${item.name}" />
-            <div class="cart-details">
-              <div><strong>${item.name}</strong></div>
-              <div class="price">₦${item.price.toLocaleString()}</div>
-              <div class="quantity-controls">
-                <button onclick="changeQuantity('${item.name}', -1)">-</button>
-                <span>${item.quantity}</span>
-                <button onclick="changeQuantity('${item.name}', 1)">+</button>
-              </div>
-              <div>Subtotal: ₦${itemTotal.toLocaleString()}</div>
+      const itemHTML = `
+        <div class="cart-item">
+          <img src="${item.image}" alt="${item.name}" />
+          <div class="cart-details">
+            <div><strong>${item.name}</strong></div>
+            <div class="price">₦${item.price.toLocaleString()}</div>
+            <div class="quantity-controls">
+              <button onclick="changeQuantity('${item.name}', -1)">-</button>
+              <span>${item.quantity}</span>
+              <button onclick="changeQuantity('${item.name}', 1)">+</button>
             </div>
-            <button class="remove-btn" onclick="removeItem('${item.name}')">Remove</button>
+            <div>Subtotal: ₦${itemTotal.toLocaleString()}</div>
           </div>
-        `;
-        cartContainer.innerHTML += itemHTML;
-      });
+          <button class="remove-btn" onclick="removeItem('${item.name}')">Remove</button>
+        </div>
+      `;
+      cartContainer.innerHTML += itemHTML;
+    });
 
-      totalDisplay.textContent = 'Total: ₦' + grandTotal.toLocaleString();
-    }
+    totalDisplay.textContent = 'Total: ₦' + grandTotal.toLocaleString();
+  }
 
-    function changeQuantity(name, delta) {
-      let cart = JSON.parse(localStorage.getItem('cart')) || [];
-      if (delta > 0) {
-        const item = cart.find(i => i.name === name);
-        if (item) cart.push({ name: item.name, image: item.image, price: item.price });
-      } else {
-        const index = cart.findIndex(i => i.name === name);
-        if (index !== -1) cart.splice(index, 1);
+  function changeQuantity(name, delta) {
+    let cart = JSON.parse(localStorage.getItem('cart')) || [];
+    const item = cart.find(i => i.name === name);
+    if (item) {
+      item.quantity += delta;
+      if (item.quantity <= 0) {
+        cart = cart.filter(i => i.name !== name);
       }
-      localStorage.setItem('cart', JSON.stringify(cart));
-      loadCart();
     }
+    localStorage.setItem('cart', JSON.stringify(cart));
+    loadCart();
+    updateCartDisplay();
+    updateQtyDisplay(name);
+  }
 
-    function removeItem(name) {
-      let cart = JSON.parse(localStorage.getItem('cart')) || [];
-      cart = cart.filter(item => item.name !== name);
-      localStorage.setItem('cart', JSON.stringify(cart));
-      loadCart();
-    }
+  function removeItem(name) {
+    let cart = JSON.parse(localStorage.getItem('cart')) || [];
+    cart = cart.filter(item => item.name !== name);
+    localStorage.setItem('cart', JSON.stringify(cart));
+    loadCart();
+    updateCartDisplay();
+    restoreAddButton(name);
+  }
 
-    window.onload = loadCart;
-
-    window.onload = loadCart;
+  window.onload = function () {
+    loadCart();
+    updateCartDisplay();
+    const cart = JSON.parse(localStorage.getItem('cart')) || [];
+    document.querySelectorAll('.add-to-cart').forEach(button => {
+      const nameMatch = button.getAttribute('onclick').match(/'([^']+)'/);
+      if (nameMatch) {
+        const name = nameMatch[1];
+        const item = cart.find(i => i.name === name);
+        if (item) {
+          addToCartUI(button, name, item.image, item.price);
+          updateQtyDisplay(name);
+        }
+      }
+    });
+  };
   </script>
 </body>
 </html>
